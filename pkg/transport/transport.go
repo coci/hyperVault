@@ -1,10 +1,11 @@
-package p2p
+package transport
 
-// Peer represents the remote node
-type Peer interface {
+// Node represents the remote node
+type Node interface {
 }
 
 // Transport that handles the connection between nodes in the network
 // this can be (TCP, UDP, WebRTC)
 type Transport interface {
+	ListenAndAccept() error
 }

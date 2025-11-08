@@ -1,4 +1,4 @@
-package p2p
+package transport
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ type TCPTransport struct {
 	listener      net.Listener
 
 	mu    sync.RWMutex
-	peers map[net.Addr]Peer
+	peers map[net.Addr]Node
 }
 
 func NewTCPTransport(listenAddress string) *TCPTransport {
@@ -35,7 +35,7 @@ func (t *TCPTransport) ListenAndAccept() error {
 	return nil
 }
 
-func (t *TCPTransport) startAcceptLoop() (net.Conn, error) {
+func (t *TCPTransport) startAcceptLoop() {
 	for {
 		conn, err := t.listener.Accept()
 		if err != nil {
