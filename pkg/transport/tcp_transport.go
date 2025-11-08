@@ -78,19 +78,19 @@ func (t *TCPTransport) HandleConnection(conn net.Conn) {
 		return
 	}
 
-	msg := &Message{}
+	rpc := &RPC{}
 
 	for {
-		err := t.Decoder.Decode(conn, msg)
+		err := t.Decoder.Decode(conn, rpc)
 
 		if err != nil {
 			fmt.Printf("TCP error %s\n", err)
 			continue
 		}
 
-		msg.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr()
 
-		fmt.Printf("TCP message %+v\n", msg)
+		fmt.Printf("TCP message %+v\n", rpc)
 	}
 
 }
