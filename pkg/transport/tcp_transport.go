@@ -6,26 +6,48 @@ import (
 	"sync"
 )
 
+// TCPNode represents tcp Node interface to establish connection
+type TCPNode struct {
+	// conn is the underlying connection of nodes
+	conn net.Conn
+
+	// if we dial a connection => outbound = true
+	// if we accept a connection => outbound = false
+	outbound bool
+}
+
+func NewTCPNode(conn net.Conn, outbound bool) *TCPNode {
+	return &TCPNode{
+		conn:     conn,
+		outbound: outbound,
+	}
+}
+
+type TCPTransportOption struct {
+	ListenAddr    string
+	HandShakeFunc HandShakeFunc
+	Decoder       Decoder
+}
+
 type TCPTransport struct {
 	Transport
-
-	listenAddress string
-	listener      net.Listener
+	TCPTransportOption
+	listener net.Listener
 
 	mu    sync.RWMutex
 	peers map[net.Addr]Node
 }
 
-func NewTCPTransport(listenAddress string) *TCPTransport {
+func NewTCPTransport(ops TCPTransportOption) *TCPTransport {
 	return &TCPTransport{
-		listenAddress: listenAddress,
+		TCPTransportOption: ops,
 	}
 }
 
 func (t *TCPTransport) ListenAndAccept() error {
 	var err error
 
-	t.listener, err = net.Listen("tcp", t.listenAddress)
+	t.listener, err = net.Listen("tcp", t.ListenAddr)
 
 	if err != nil {
 		return err
@@ -41,10 +63,34 @@ func (t *TCPTransport) startAcceptLoop() {
 		if err != nil {
 			fmt.Printf("TCP accept err %s\n", err)
 		}
+
+		fmt.Printf("new incoming connection %+v\n", conn)
 		go t.HandleConnection(conn)
 	}
 }
 
 func (t *TCPTransport) HandleConnection(conn net.Conn) {
-	fmt.Printf("new incoming connection %+v\n", conn)
+	node := NewTCPNode(conn, true)
+
+	if err := t.HandShakeFunc(node); err != nil {
+		conn.Close()
+		fmt.Printf("TCP handshake error %s\n", err)
+		return
+	}
+
+	msg := &Message{}
+
+	for {
+		err := t.Decoder.Decode(conn, msg)
+
+		if err != nil {
+			fmt.Printf("TCP error %s\n", err)
+			continue
+		}
+
+		msg.From = conn.RemoteAddr()
+
+		fmt.Printf("TCP message %+v\n", msg)
+	}
+
 }
